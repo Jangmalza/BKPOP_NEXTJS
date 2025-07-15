@@ -6,8 +6,8 @@ import MainNav from '@/components/Header/MainNav';
 import MainSlider from '@/components/Slider/MainSlider';
 import ProductList from '@/components/Product/ProductList';
 import Footer from '@/components/Common/Footer';
-import bestProducts from '../../lib/bestProducts';
-import recommendedProducts from '../../lib/recommendedProducts';
+import bestProducts from '@/lib/bestProducts';
+import recommendedProducts from '@/lib/recommendedProducts';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('상업인쇄');

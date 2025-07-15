@@ -1,4 +1,6 @@
+'use client';
 import React from 'react';
+import { useCart } from '@/contexts/CartContext';
 
 export interface ProductItem {
   id: number;
@@ -15,6 +17,13 @@ interface ProductListProps {
 }
 
 const ProductList: React.FC<ProductListProps> = ({ title, products }) => {
+  const { addItem } = useCart();
+
+  const handleAddToCart = (product: ProductItem) => {
+    addItem(product, 1);
+    alert(`${product.title}이(가) 장바구니에 추가되었습니다.`);
+  };
+
   return (
     <section className="w-full py-12 bg-white border-b">
       <div className="max-w-[1400px] mx-auto">
@@ -33,7 +42,17 @@ const ProductList: React.FC<ProductListProps> = ({ title, products }) => {
               <h3 className="font-bold text-lg text-blue-900 mb-2">{product.title}</h3>
               <div className="text-sm text-gray-500 mb-1">{product.size}</div>
               <div className="text-base font-semibold text-blue-700 mb-2">{product.price} <span className="text-xs text-gray-400">/ {product.quantity}</span></div>
-              <button className="mt-auto bg-yellow-400 text-blue-900 font-bold px-6 py-2 rounded-full text-base shadow hover:bg-yellow-300 transition">상세보기</button>
+              <div className="mt-auto flex gap-2">
+                <button 
+                  onClick={() => handleAddToCart(product)}
+                  className="bg-blue-600 text-white font-bold px-4 py-2 rounded-full text-sm shadow hover:bg-blue-700 transition"
+                >
+                  장바구니
+                </button>
+                <button className="bg-yellow-400 text-blue-900 font-bold px-4 py-2 rounded-full text-sm shadow hover:bg-yellow-300 transition">
+                  상세보기
+                </button>
+              </div>
             </div>
           ))}
         </div>
