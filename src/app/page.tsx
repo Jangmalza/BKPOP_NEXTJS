@@ -20,8 +20,8 @@ export default function Home() {
         <MainNav activeTab={activeTab} setActiveTab={setActiveTab} />
       </header>
       <MainSlider />
-      <ProductList title="베스트 상품" products={bestProducts} />
-      <ProductList title="추천 상품" products={recommendedProducts} />
+      <ProductList title="베스트 상품" products={bestProducts} showCartButton={false} />
+      <ProductList title="추천 상품" products={recommendedProducts} showCartButton={false} />
       {/* 후기/공지/정보 섹션 */}
       <section className="w-full py-16 bg-white border-b">
         <div className="max-w-[1400px] mx-auto">

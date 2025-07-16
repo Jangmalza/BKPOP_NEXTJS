@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import TopNav from '@/components/Header/TopNav';
@@ -8,8 +8,38 @@ import MainNav from '@/components/Header/MainNav';
 import Footer from '@/components/Common/Footer';
 
 const CartPage = () => {
-  const { items, removeItem, updateQuantity, clearCart, getTotalPrice, getTotalItems } = useCart();
+  const { items, removeItem, updateQuantity, clearCart, getTotalPrice, getTotalItems, refreshCart } = useCart();
   const { isAuthenticated } = useAuth();
+
+  // 페이지 방문 시마다 장바구니 데이터 새로고침
+  useEffect(() => {
+    if (refreshCart) {
+      refreshCart();
+    }
+  }, [refreshCart]);
+
+  // 브라우저 뒤로가기/앞으로가기 시 장바구니 데이터 새로고침
+  useEffect(() => {
+    const handlePopState = () => {
+      if (refreshCart) {
+        refreshCart();
+      }
+    };
+
+    const handleFocus = () => {
+      if (refreshCart) {
+        refreshCart();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [refreshCart]);
 
   // 가격 포맷팅 함수
   const formatPrice = (price: number): string => {

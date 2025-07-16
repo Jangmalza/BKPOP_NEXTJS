@@ -120,20 +120,46 @@ const BusinessCardDetailPage = () => {
   const handleAddToCart = () => {
     if (!product) return;
     
+    // 최종 가격 계산 (부가세 포함)
+    const finalPrice = totalPrice + Math.round(totalPrice * 0.1);
+    
     const cartItem = {
       ...product,
-      price: `${totalPrice.toLocaleString()}원`,
-      options: options,
-      title: `${product.title} (${options.size})`
+      price: finalPrice.toString(), // 부가세 포함된 최종 가격
+      size: options.size, // 선택한 크기 옵션 사용
+      title: `${product.title} (${options.size}, ${options.paper}, ${options.printSides})`,
+      // 선택한 옵션 정보를 추가로 저장
+      options: options
     };
+    
+    console.log('장바구니에 추가할 상품:', cartItem);
+    console.log('계산된 가격 (부가세 제외):', totalPrice);
+    console.log('최종 가격 (부가세 포함):', finalPrice);
+    console.log('전달할 가격 문자열:', cartItem.price);
     
     addItem(cartItem, 1);
     alert('상품이 장바구니에 추가되었습니다!');
   };
 
   const handleDirectOrder = () => {
-    handleAddToCart();
+    if (!product) return;
+    
+    const cartItem = {
+      ...product,
+      price: totalPrice.toString(), // 숫자를 문자열로 변환 (parsePrice에서 처리)
+      size: options.size, // 선택한 크기 옵션 사용
+      title: `${product.title} (${options.size}, ${options.paper}, ${options.printSides})`,
+      // 선택한 옵션 정보를 추가로 저장
+      options: options
+    };
+    
+    addItem(cartItem, 1);
     router.push('/cart');
+  };
+
+  const handleQuoteInquiry = () => {
+    // 견적문의 기능 (추후 구현)
+    alert('견적문의 기능은 준비중입니다.');
   };
 
   if (!product) {
@@ -377,16 +403,22 @@ const BusinessCardDetailPage = () => {
                 </div>
               </div>
               
-              <div className="flex space-x-4">
+              <div className="flex space-x-3">
                 <button
                   onClick={handleAddToCart}
+                  className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-bold hover:bg-blue-700 transition"
+                >
+                  장바구니
+                </button>
+                <button
+                  onClick={handleDirectOrder}
                   className="flex-1 bg-orange-500 text-white py-3 px-6 rounded-lg font-bold hover:bg-orange-600 transition"
                 >
                   바로주문
                 </button>
                 <button
-                  onClick={handleDirectOrder}
-                  className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-bold hover:bg-blue-700 transition"
+                  onClick={handleQuoteInquiry}
+                  className="flex-1 bg-gray-600 text-white py-3 px-6 rounded-lg font-bold hover:bg-gray-700 transition"
                 >
                   견적문의
                 </button>

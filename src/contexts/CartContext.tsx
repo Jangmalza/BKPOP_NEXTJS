@@ -251,8 +251,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * 비로그인 상태에서 장바구니 데이터 변경 시 로컬 스토리지 저장
    */
   useEffect(() => {
-    if (!isAuthenticated && items.length > 0) {
-      LocalCartManager.saveCart(items);
+    if (!isAuthenticated) {
+      if (items.length > 0) {
+        LocalCartManager.saveCart(items);
+      } else {
+        // 장바구니가 비어있을 때도 로컬 스토리지 업데이트
+        LocalCartManager.clearCart();
+      }
     }
   }, [items, isAuthenticated]);
 
@@ -273,11 +278,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         // 비로그인 상태: 로컬 스토리지에 저장
         const price = Formatter.parsePrice(product.price);
-        const existingItem = items.find(item => item.product_id === product.id);
+        console.log('받은 상품 가격:', product.price);
+        console.log('파싱된 가격:', price);
+        
+        const existingItem = items.find(item => item.product_id === product.id && item.title === product.title);
 
         if (existingItem) {
+          console.log('기존 아이템 발견:', existingItem);
           const updatedItems = items.map(item =>
-            item.product_id === product.id
+            item.product_id === product.id && item.title === product.title
               ? {
                   ...item,
                   quantity: item.quantity + quantity,
@@ -287,16 +296,18 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           );
           setItems(updatedItems);
         } else {
+          console.log('새 아이템 생성');
           const newItem: CartItem = {
             id: Date.now(), // 임시 ID
             product_id: product.id,
             image: product.image,
-            title: product.title,
-            size: product.size,
+            title: product.title, // 상세보기에서 수정된 title 사용
+            size: product.size, // 상세보기에서 수정된 size 사용
             price: price,
             quantity: quantity,
             totalPrice: price * quantity
           };
+          console.log('생성된 새 아이템:', newItem);
           setItems(prevItems => [...prevItems, newItem]);
         }
       }
@@ -321,14 +332,23 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
       
+      console.log('상품 제거 시작, ID:', id);
+      
       if (isAuthenticated && user?.id) {
         // 로그인 상태: 서버에서 삭제 후 새로고침
+        console.log('로그인 상태 - 서버에서 삭제');
         await CartAPI.removeCartItem(id);
         await loadCartFromServer(parseInt(user.id));
       } else {
         // 비로그인 상태: 로컬에서 삭제
-        setItems(prevItems => prevItems.filter(item => item.id !== id));
+        console.log('비로그인 상태 - 로컬에서 삭제');
+        const filteredItems = items.filter(item => item.id !== id);
+        console.log('삭제 전 아이템 수:', items.length);
+        console.log('삭제 후 아이템 수:', filteredItems.length);
+        setItems(filteredItems);
       }
+      
+      console.log('상품 제거 완료');
     } catch (error) {
       const errorMessage = error instanceof AppError 
         ? error.message 
@@ -339,7 +359,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, user?.id, loadCartFromServer]);
+  }, [isAuthenticated, user?.id, loadCartFromServer, items]);
 
   /**
    * 장바구니 상품 수량 변경
@@ -435,11 +455,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * 장바구니 새로고침
    */
   const refreshCart = useCallback(async () => {
+    console.log('장바구니 새로고침 시작');
     if (isAuthenticated && user?.id) {
+      console.log('로그인 상태 - 서버에서 데이터 로드');
       await loadCartFromServer(parseInt(user.id));
     } else {
+      console.log('비로그인 상태 - 로컬 스토리지에서 데이터 로드');
       loadCartFromLocalStorage();
     }
+    console.log('장바구니 새로고침 완료');
   }, [isAuthenticated, user?.id, loadCartFromServer, loadCartFromLocalStorage]);
 
   // 컨텍스트 값 생성

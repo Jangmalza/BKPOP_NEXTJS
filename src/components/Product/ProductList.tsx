@@ -1,35 +1,59 @@
+/**
+ * 상품 목록 컴포넌트
+ * @fileoverview 상품들을 그리드 형태로 표시하는 재사용 가능한 컴포넌트
+ * @author Development Team
+ * @version 1.0.0
+ */
+
 'use client';
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
+import { ProductItem } from '@/types';
 
-export interface ProductItem {
-  id: number;
-  image: string;
-  title: string;
-  size: string;
-  price: string;
-  quantity: string;
-}
-
+/**
+ * ProductList 컴포넌트 Props
+ * @interface ProductListProps
+ * @description 상품 목록 컴포넌트의 props 타입 정의
+ */
 interface ProductListProps {
+  /** 상품 목록 섹션 제목 */
   title: string;
+  /** 표시할 상품 배열 */
   products: ProductItem[];
+  /** 카테고리 경로 (상세페이지 링크용) */
   category?: string;
+  /** 장바구니 버튼 표시 여부 */
+  showCartButton?: boolean;
 }
 
-const ProductList: React.FC<ProductListProps> = ({ title, products, category }) => {
+/**
+ * 상품 목록 컴포넌트
+ * @description 상품들을 그리드 형태로 표시하는 컴포넌트
+ * @param {ProductListProps} props - 컴포넌트 props
+ * @returns {JSX.Element} 상품 목록 JSX 엘리먼트
+ */
+const ProductList: React.FC<ProductListProps> = ({ title, products, category, showCartButton = false }) => {
   const { addItem } = useCart();
   const router = useRouter();
 
+  /**
+   * 장바구니에 상품 추가 핸들러
+   * @param {ProductItem} product - 추가할 상품 정보
+   */
   const handleAddToCart = (product: ProductItem) => {
     addItem(product, 1);
     alert(`${product.title}이(가) 장바구니에 추가되었습니다.`);
   };
 
+  /**
+   * 상품 상세보기 페이지로 이동 핸들러
+   * @param {ProductItem} product - 상세보기할 상품 정보
+   */
   const handleDetailView = (product: ProductItem) => {
-    if (category) {
-      router.push(`/products/${category}/${product.id}`);
+    const productCategory = product.category || category;
+    if (productCategory) {
+      router.push(`/products/${productCategory}/${product.id}`);
     }
   };
 
@@ -51,19 +75,48 @@ const ProductList: React.FC<ProductListProps> = ({ title, products, category }) 
               <h3 className="font-bold text-lg text-blue-900 mb-2">{product.title}</h3>
               <div className="text-sm text-gray-500 mb-1">{product.size}</div>
               <div className="text-base font-semibold text-blue-700 mb-2">{product.price} <span className="text-xs text-gray-400">/ {product.quantity}</span></div>
-              <div className="mt-auto flex gap-2">
-                <button 
-                  onClick={() => handleAddToCart(product)}
-                  className="bg-blue-600 text-white font-bold px-4 py-2 rounded-full text-sm shadow hover:bg-blue-700 transition"
-                >
-                  장바구니
-                </button>
-                <button 
-                  onClick={() => handleDetailView(product)}
-                  className="bg-yellow-400 text-blue-900 font-bold px-4 py-2 rounded-full text-sm shadow hover:bg-yellow-300 transition"
-                >
-                  상세보기
-                </button>
+              <div className="mt-auto">
+                {(() => {
+                  const productCategory = product.category || category;
+                  
+                  if (showCartButton && productCategory) {
+                    return (
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => handleAddToCart(product)}
+                          className="bg-blue-600 text-white font-bold px-4 py-2 rounded-full text-sm shadow hover:bg-blue-700 transition"
+                        >
+                          장바구니
+                        </button>
+                        <button 
+                          onClick={() => handleDetailView(product)}
+                          className="bg-yellow-400 text-blue-900 font-bold px-4 py-2 rounded-full text-sm shadow hover:bg-yellow-300 transition"
+                        >
+                          상세보기
+                        </button>
+                      </div>
+                    );
+                  } else if (showCartButton) {
+                    return (
+                      <button 
+                        onClick={() => handleAddToCart(product)}
+                        className="bg-blue-600 text-white font-bold px-6 py-2 rounded-full text-sm shadow hover:bg-blue-700 transition"
+                      >
+                        장바구니
+                      </button>
+                    );
+                  } else if (productCategory) {
+                    return (
+                      <button 
+                        onClick={() => handleDetailView(product)}
+                        className="bg-yellow-400 text-blue-900 font-bold px-6 py-2 rounded-full text-sm shadow hover:bg-yellow-300 transition"
+                      >
+                        상세보기
+                      </button>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             </div>
           ))}

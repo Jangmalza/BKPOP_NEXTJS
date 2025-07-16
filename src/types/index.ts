@@ -23,6 +23,8 @@ export interface ProductItem {
   price: string;
   /** 재고 수량 (문자열 형태) */
   quantity: string;
+  /** 제품 카테고리 (선택적, 상세페이지 링크용) */
+  category?: string;
 }
 
 /**
