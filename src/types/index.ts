@@ -221,6 +221,13 @@ export interface ApiResponse<T = any> {
 }
 
 /**
+ * 사용자 역할 타입
+ * @type UserRole
+ * @description 사용자 권한 레벨
+ */
+export type UserRole = 'user' | 'admin' | 'super_admin';
+
+/**
  * 사용자 정보 인터페이스
  * @interface User
  * @description 사용자 정보 타입
@@ -234,10 +241,70 @@ export interface User {
   email: string;
   /** 전화번호 */
   phone?: string;
+  /** 사용자 역할 */
+  role: UserRole;
   /** 계정 생성일 */
   created_at: string;
   /** 계정 수정일 */
   updated_at: string;
+}
+
+/**
+ * 관리자 사용자 인터페이스
+ * @interface AdminUser
+ * @description 관리자 전용 사용자 정보
+ */
+export interface AdminUser extends User {
+  /** 관리자 역할 (admin 또는 super_admin만 허용) */
+  role: 'admin' | 'super_admin';
+  /** 마지막 로그인 시간 */
+  last_login?: string;
+  /** 관리자 권한 목록 */
+  permissions?: string[];
+}
+
+/**
+ * 관리자 대시보드 통계 인터페이스
+ * @interface AdminStats
+ * @description 관리자 대시보드에서 사용하는 통계 정보
+ */
+export interface AdminStats {
+  /** 총 사용자 수 */
+  totalUsers: number;
+  /** 총 주문 수 */
+  totalOrders: number;
+  /** 총 상품 수 */
+  totalProducts: number;
+  /** 총 매출 */
+  totalRevenue: number;
+  /** 오늘 신규 사용자 수 */
+  todayNewUsers: number;
+  /** 오늘 주문 수 */
+  todayOrders: number;
+  /** 이번 달 매출 */
+  monthlyRevenue: number;
+  /** 전월 대비 매출 증가율 */
+  revenueGrowth: number;
+}
+
+/**
+ * 관리자 메뉴 아이템 인터페이스
+ * @interface AdminMenuItem
+ * @description 관리자 사이드바 메뉴 아이템
+ */
+export interface AdminMenuItem {
+  /** 메뉴 ID */
+  id: string;
+  /** 메뉴 제목 */
+  title: string;
+  /** 메뉴 아이콘 */
+  icon: string;
+  /** 메뉴 경로 */
+  path: string;
+  /** 하위 메뉴 */
+  children?: AdminMenuItem[];
+  /** 필요한 권한 */
+  requiredRole?: UserRole;
 }
 
 /**

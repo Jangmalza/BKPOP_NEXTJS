@@ -1,8 +1,11 @@
+import { UserRole, AdminUser } from '@/types';
+
 export interface User {
   id: string;
   name: string;
   email: string;
   phone?: string;
+  role: UserRole;
   created_at?: string;
 }
 
@@ -96,4 +99,78 @@ export const setCurrentUser = (user: User | null): void => {
 export const logoutUser = (): void => {
   if (typeof window === 'undefined') return;
   localStorage.removeItem('currentUser');
+};
+
+/**
+ * 관리자 권한 확인
+ * @param user - 확인할 사용자 객체
+ * @param requiredRole - 필요한 최소 권한 레벨
+ * @returns 권한 여부
+ */
+export const hasAdminPermission = (user: User | null, requiredRole: UserRole = 'admin'): boolean => {
+  if (!user) return false;
+  
+  const roleHierarchy: Record<UserRole, number> = {
+    'user': 0,
+    'admin': 1,
+    'super_admin': 2
+  };
+  
+  return roleHierarchy[user.role] >= roleHierarchy[requiredRole];
+};
+
+/**
+ * 관리자 사용자인지 확인
+ * @param user - 확인할 사용자 객체
+ * @returns 관리자 여부
+ */
+export const isAdmin = (user: User | null): user is AdminUser => {
+  return user !== null && (user.role === 'admin' || user.role === 'super_admin');
+};
+
+/**
+ * 슈퍼 관리자인지 확인
+ * @param user - 확인할 사용자 객체
+ * @returns 슈퍼 관리자 여부
+ */
+export const isSuperAdmin = (user: User | null): boolean => {
+  return user !== null && user.role === 'super_admin';
+};
+
+/**
+ * 관리자 페이지 접근 권한 확인
+ * @param user - 확인할 사용자 객체
+ * @param path - 접근하려는 경로
+ * @returns 접근 허용 여부
+ */
+export const canAccessAdminPage = (user: User | null, path: string): boolean => {
+  if (!isAdmin(user)) return false;
+  
+  // 슈퍼 관리자는 모든 페이지 접근 가능
+  if (isSuperAdmin(user)) return true;
+  
+  // 일반 관리자는 특정 페이지만 접근 가능
+  const adminOnlyPaths = ['/admin/users', '/admin/settings', '/admin/system'];
+  const isAdminOnlyPath = adminOnlyPaths.some(adminPath => path.startsWith(adminPath));
+  
+  return !isAdminOnlyPath;
+};
+
+/**
+ * 관리자 인증 미들웨어
+ * @param requiredRole - 필요한 최소 권한 레벨
+ * @returns 미들웨어 함수
+ */
+export const requireAdminAuth = (requiredRole: UserRole = 'admin') => {
+  return (user: User | null): { authorized: boolean; message?: string } => {
+    if (!user) {
+      return { authorized: false, message: '로그인이 필요합니다.' };
+    }
+    
+    if (!hasAdminPermission(user, requiredRole)) {
+      return { authorized: false, message: '관리자 권한이 필요합니다.' };
+    }
+    
+    return { authorized: true };
+  };
 }; 

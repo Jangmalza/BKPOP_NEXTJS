@@ -6,6 +6,7 @@
  */
 
 import mysql from 'mysql2/promise';
+import bcrypt from 'bcryptjs';
 import { getDatabaseConfig, AppConfig } from '@/lib/config';
 import { AppError, ERROR_CODES, ErrorHandler } from '@/utils';
 
@@ -66,13 +67,30 @@ export async function initDatabase(): Promise<void> {
         email VARCHAR(255) UNIQUE NOT NULL COMMENT '이메일 주소',
         password VARCHAR(255) NOT NULL COMMENT '암호화된 비밀번호',
         phone VARCHAR(20) COMMENT '전화번호',
+        role ENUM('user', 'admin', 'super_admin') DEFAULT 'user' COMMENT '사용자 역할',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
         
         INDEX idx_users_email (email),
+        INDEX idx_users_role (role),
         INDEX idx_users_created_at (created_at)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자 정보 테이블'
     `);
+    
+    // 기존 users 테이블에 role 컬럼 추가 (이미 테이블이 존재하는 경우)
+    try {
+      await connection.execute(`
+        ALTER TABLE users 
+        ADD COLUMN IF NOT EXISTS role ENUM('user', 'admin', 'super_admin') DEFAULT 'user' COMMENT '사용자 역할'
+      `);
+      await connection.execute(`
+        ALTER TABLE users 
+        ADD INDEX IF NOT EXISTS idx_users_role (role)
+      `);
+      console.log('✅ users 테이블 role 컬럼 추가 완료');
+    } catch (alterError) {
+      console.log('⚠️  users 테이블 role 컬럼 추가 중 오류 (이미 존재할 수 있음):', alterError);
+    }
     console.log('✅ users 테이블 생성 완료');
     
     // cart 테이블 생성
@@ -102,6 +120,9 @@ export async function initDatabase(): Promise<void> {
     await createProductsTable(connection);
     await createOrdersTable(connection);
     
+    // 기본 관리자 계정 생성
+    await createDefaultAdminUser(connection);
+    
     console.log('✅ 데이터베이스 초기화 완료');
     
   } catch (error) {
@@ -115,6 +136,48 @@ export async function initDatabase(): Promise<void> {
     if (connection) {
       connection.release();
     }
+  }
+}
+
+/**
+ * 기본 관리자 계정 생성
+ * @param connection - 데이터베이스 연결 객체
+ */
+async function createDefaultAdminUser(connection: mysql.PoolConnection): Promise<void> {
+  try {
+    // 기본 관리자 정보
+    const adminEmail = 'admin@bkpop.com';
+    const adminPassword = 'admin123!'; // 실제 환경에서는 환경 변수로 관리
+    const adminName = '관리자';
+    
+    // 이미 관리자 계정이 있는지 확인
+    const [existingAdmin] = await connection.execute(
+      'SELECT id FROM users WHERE email = ? OR role = ?',
+      [adminEmail, 'super_admin']
+    );
+    
+    if (Array.isArray(existingAdmin) && existingAdmin.length > 0) {
+      console.log('⚠️  기본 관리자 계정이 이미 존재합니다.');
+      return;
+    }
+    
+    // bcrypt를 사용하여 비밀번호 해싱
+    const hashedPassword = await bcrypt.hash(adminPassword, 12);
+    
+    // 관리자 계정 생성
+    await connection.execute(`
+      INSERT INTO users (name, email, password, role, created_at, updated_at)
+      VALUES (?, ?, ?, 'super_admin', NOW(), NOW())
+    `, [adminName, adminEmail, hashedPassword]);
+    
+    console.log('✅ 기본 관리자 계정 생성 완료');
+    console.log(`   이메일: ${adminEmail}`);
+    console.log(`   비밀번호: ${adminPassword}`);
+    console.log('   ⚠️  보안을 위해 최초 로그인 후 비밀번호를 변경하세요.');
+    
+  } catch (error) {
+    console.error('❌ 기본 관리자 계정 생성 실패:', error);
+    // 관리자 계정 생성 실패는 전체 초기화를 중단시키지 않음
   }
 }
 
