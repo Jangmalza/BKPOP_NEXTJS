@@ -34,10 +34,11 @@ import {
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const { quantity } = await request.json();
+    const params = await context.params;
     const cartId = params.id;
 
     // 필수 파라미터 검증
@@ -160,9 +161,10 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params;
     const cartId = params.id;
 
     // 필수 파라미터 검증
@@ -202,7 +204,7 @@ export async function DELETE(
       }
 
       // 장바구니 아이템 삭제
-      const [result] = await connection.execute(
+      await connection.execute(
         'DELETE FROM cart WHERE id = ?',
         [cartId]
       );

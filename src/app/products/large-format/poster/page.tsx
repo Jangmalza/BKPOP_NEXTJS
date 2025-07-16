@@ -11,7 +11,7 @@ const PosterPage = () => {
           <h1 className="text-3xl font-bold text-blue-900 mb-2">포스터</h1>
           <p className="text-gray-600">대형 포스터를 선명하고 생생하게 제작해드립니다.</p>
         </div>
-        <ProductList title="포스터 상품" products={posterProducts} />
+        <ProductList title="포스터 상품" products={posterProducts} category="large-format/poster" />
       </div>
     </CategoryLayout>
   );

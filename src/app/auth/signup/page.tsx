@@ -133,7 +133,7 @@ const SignupPage = () => {
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    className="appearance-none block w-full px-3 py-2 bg-white border border-gray-400 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 sm:text-sm"
                     placeholder="홍길동"
                   />
                 </div>
@@ -153,7 +153,7 @@ const SignupPage = () => {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    className="appearance-none block w-full px-3 py-2 bg-white border border-gray-400 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 sm:text-sm"
                     placeholder="example@email.com"
                   />
                 </div>
@@ -171,7 +171,7 @@ const SignupPage = () => {
                     type="tel"
                     value={formData.phone}
                     onChange={handleChange}
-                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    className="appearance-none block w-full px-3 py-2 bg-white border border-gray-400 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 sm:text-sm"
                     placeholder="010-1234-5678"
                   />
                 </div>
@@ -190,7 +190,7 @@ const SignupPage = () => {
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    className="appearance-none block w-full px-3 py-2 bg-white border border-gray-400 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 sm:text-sm"
                     placeholder="8자 이상 입력하세요"
                   />
                 </div>
@@ -212,7 +212,7 @@ const SignupPage = () => {
                     required
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    className="appearance-none block w-full px-3 py-2 bg-white border border-gray-400 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 sm:text-sm"
                     placeholder="비밀번호를 다시 입력하세요"
                   />
                 </div>
@@ -230,7 +230,7 @@ const SignupPage = () => {
                     type="checkbox"
                     checked={formData.agreeTerms}
                     onChange={handleChange}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 bg-white border-gray-400 rounded"
                   />
                   <label htmlFor="agreeTerms" className="ml-2 block text-sm text-gray-900">
                     <span className="text-red-500">*</span> 이용약관에 동의합니다{' '}
@@ -250,7 +250,7 @@ const SignupPage = () => {
                     type="checkbox"
                     checked={formData.agreePrivacy}
                     onChange={handleChange}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 bg-white border-gray-400 rounded"
                   />
                   <label htmlFor="agreePrivacy" className="ml-2 block text-sm text-gray-900">
                     <span className="text-red-500">*</span> 개인정보처리방침에 동의합니다{' '}
@@ -268,7 +268,7 @@ const SignupPage = () => {
                     id="agreeMarketing"
                     name="agreeMarketing"
                     type="checkbox"
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 bg-white border-gray-400 rounded"
                   />
                   <label htmlFor="agreeMarketing" className="ml-2 block text-sm text-gray-900">
                     마케팅 정보 수신에 동의합니다 (선택)

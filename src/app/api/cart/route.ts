@@ -318,7 +318,7 @@ export async function DELETE(request: NextRequest) {
       }
 
       // 장바구니 비우기
-      const [result] = await connection.execute(
+      await connection.execute(
         'DELETE FROM cart WHERE user_id = ?',
         [userId]
       );

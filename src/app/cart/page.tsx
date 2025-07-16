@@ -110,14 +110,14 @@ const CartPage = () => {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                          className="w-8 h-8 border border-gray-300 rounded flex items-center justify-center hover:bg-gray-100"
+                          className="w-8 h-8 bg-white border border-gray-400 rounded flex items-center justify-center hover:bg-gray-100 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         >
                           -
                         </button>
-                        <span className="w-12 text-center">{item.quantity}</span>
+                        <span className="w-12 text-center bg-white border border-gray-400 rounded py-1 text-gray-900">{item.quantity}</span>
                         <button
                           onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                          className="w-8 h-8 border border-gray-300 rounded flex items-center justify-center hover:bg-gray-100"
+                          className="w-8 h-8 bg-white border border-gray-400 rounded flex items-center justify-center hover:bg-gray-100 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         >
                           +
                         </button>
@@ -148,11 +148,11 @@ const CartPage = () => {
               <div className="space-y-2 mb-6">
                 <div className="flex justify-between">
                   <span className="text-gray-600">상품금액</span>
-                  <span className="font-semibold">{formatPrice(getTotalPrice())}원</span>
+                  <span className="font-semibold text-gray-900">{formatPrice(getTotalPrice())}원</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">배송비</span>
-                  <span className="font-semibold">무료</span>
+                  <span className="font-semibold text-gray-900">무료</span>
                 </div>
                 <div className="border-t pt-2">
                   <div className="flex justify-between text-lg font-bold text-blue-900">

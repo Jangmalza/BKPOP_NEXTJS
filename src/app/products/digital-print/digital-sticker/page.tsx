@@ -11,7 +11,7 @@ const DigitalStickerPage = () => {
           <h1 className="text-3xl font-bold text-blue-900 mb-2">디지털스티커</h1>
           <p className="text-gray-600">정밀한 디지털 인쇄 기술로 제작되는 고품질 스티커입니다.</p>
         </div>
-        <ProductList title="디지털스티커 상품" products={digitalStickerProducts} />
+        <ProductList title="디지털스티커 상품" products={digitalStickerProducts} category="digital-print/digital-sticker" />
       </div>
     </CategoryLayout>
   );

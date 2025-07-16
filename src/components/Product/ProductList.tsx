@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 
 export interface ProductItem {
@@ -14,14 +15,22 @@ export interface ProductItem {
 interface ProductListProps {
   title: string;
   products: ProductItem[];
+  category?: string;
 }
 
-const ProductList: React.FC<ProductListProps> = ({ title, products }) => {
+const ProductList: React.FC<ProductListProps> = ({ title, products, category }) => {
   const { addItem } = useCart();
+  const router = useRouter();
 
   const handleAddToCart = (product: ProductItem) => {
     addItem(product, 1);
     alert(`${product.title}이(가) 장바구니에 추가되었습니다.`);
+  };
+
+  const handleDetailView = (product: ProductItem) => {
+    if (category) {
+      router.push(`/products/${category}/${product.id}`);
+    }
   };
 
   return (
@@ -49,7 +58,10 @@ const ProductList: React.FC<ProductListProps> = ({ title, products }) => {
                 >
                   장바구니
                 </button>
-                <button className="bg-yellow-400 text-blue-900 font-bold px-4 py-2 rounded-full text-sm shadow hover:bg-yellow-300 transition">
+                <button 
+                  onClick={() => handleDetailView(product)}
+                  className="bg-yellow-400 text-blue-900 font-bold px-4 py-2 rounded-full text-sm shadow hover:bg-yellow-300 transition"
+                >
                   상세보기
                 </button>
               </div>

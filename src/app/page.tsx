@@ -31,21 +31,21 @@ export default function Home() {
               <div className="flex justify-center mb-2 text-yellow-400 text-xl">
                 {[...Array(5)].map((_, i) => <i key={i} className="fas fa-star"></i>)}
               </div>
-              <p className="text-gray-700 mb-4">"명함 주문했는데 정말 빠르고 깔끔하게 나왔어요! 다음에도 꼭 이용할게요."</p>
+              <p className="text-gray-700 mb-4">&ldquo;명함 주문했는데 정말 빠르고 깔끔하게 나왔어요! 다음에도 꼭 이용할게요.&rdquo;</p>
               <div className="text-sm text-gray-500">- 김** 님</div>
             </div>
             <div className="bg-gray-50 p-8 rounded-xl shadow text-center">
               <div className="flex justify-center mb-2 text-yellow-400 text-xl">
                 {[...Array(5)].map((_, i) => <i key={i} className="fas fa-star"></i>)}
               </div>
-              <p className="text-gray-700 mb-4">"회사 브로셔 제작했는데 디자인도 예쁘고 품질도 훌륭해요. 강력 추천!"</p>
+              <p className="text-gray-700 mb-4">&ldquo;회사 브로셔 제작했는데 디자인도 예쁘고 품질도 훌륭해요. 강력 추천!&rdquo;</p>
               <div className="text-sm text-gray-500">- 박** 님</div>
             </div>
             <div className="bg-gray-50 p-8 rounded-xl shadow text-center">
               <div className="flex justify-center mb-2 text-yellow-400 text-xl">
                 {[...Array(5)].map((_, i) => <i key={i} className="fas fa-star"></i>)}
               </div>
-              <p className="text-gray-700 mb-4">"가격도 합리적이고 서비스도 친절해서 정말 만족스러워요."</p>
+              <p className="text-gray-700 mb-4">&ldquo;가격도 합리적이고 서비스도 친절해서 정말 만족스러워요.&rdquo;</p>
               <div className="text-sm text-gray-500">- 이** 님</div>
             </div>
           </div>
