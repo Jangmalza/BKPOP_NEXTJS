@@ -111,23 +111,30 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('AdminLayout useEffect 실행');
     const currentUser = getCurrentUser();
+    console.log('현재 사용자:', currentUser);
     
     if (!currentUser) {
+      console.log('사용자가 없음, 로그인 페이지로 이동');
       router.push('/auth/login?redirect=/admin');
       return;
     }
 
+    console.log('사용자 역할:', currentUser.role);
     if (!isAdmin(currentUser)) {
+      console.log('관리자 권한이 없음, 메인 페이지로 이동');
       router.push('/');
       return;
     }
 
     if (!canAccessAdminPage(currentUser, currentPath)) {
+      console.log('페이지 접근 권한이 없음, 관리자 메인으로 이동');
       router.push('/admin');
       return;
     }
 
+    console.log('권한 확인 완료, 관리자 페이지 로드');
     setUser(currentUser);
     setLoading(false);
   }, [router, currentPath]);

@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     // 데이터베이스에서 사용자 찾기
     const connection = await pool.getConnection();
     const [users] = await connection.execute(
-      'SELECT id, name, email, password, phone, created_at FROM users WHERE email = ?',
+      'SELECT id, name, email, password, phone, role, created_at FROM users WHERE email = ?',
       [email]
     );
 
