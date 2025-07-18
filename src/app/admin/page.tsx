@@ -108,24 +108,50 @@ const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 실제 환경에서는 API 호출로 데이터를 가져옴
+    // 실제 API 호출로 데이터를 가져옴
     const fetchStats = async () => {
       try {
-        // 임시 데이터 (실제로는 API 호출)
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const response = await fetch('/api/admin/stats');
+        const result = await response.json();
         
-        setStats({
-          totalUsers: 1234,
-          totalOrders: 856,
-          totalProducts: 245,
-          totalRevenue: 12500000,
-          todayNewUsers: 23,
-          todayOrders: 45,
-          monthlyRevenue: 3200000,
-          revenueGrowth: 15.2
-        });
+        if (result.success) {
+          setStats({
+            totalUsers: result.data.totalUsers || 0,
+            totalOrders: result.data.totalOrders || 0,
+            totalProducts: result.data.totalProducts || 0,
+            totalRevenue: result.data.totalRevenue || 0,
+            todayNewUsers: result.data.todayNewUsers || 0,
+            todayOrders: result.data.todayOrders || 0,
+            monthlyRevenue: result.data.monthlyRevenue || 0,
+            revenueGrowth: result.data.revenueGrowth || 0
+          });
+        } else {
+          console.error('통계 데이터 로드 실패:', result.message);
+          // 실패 시 기본값 설정
+          setStats({
+            totalUsers: 0,
+            totalOrders: 0,
+            totalProducts: 0,
+            totalRevenue: 0,
+            todayNewUsers: 0,
+            todayOrders: 0,
+            monthlyRevenue: 0,
+            revenueGrowth: 0
+          });
+        }
       } catch (error) {
         console.error('통계 데이터 로드 실패:', error);
+        // 에러 시 기본값 설정
+        setStats({
+          totalUsers: 0,
+          totalOrders: 0,
+          totalProducts: 0,
+          totalRevenue: 0,
+          todayNewUsers: 0,
+          todayOrders: 0,
+          monthlyRevenue: 0,
+          revenueGrowth: 0
+        });
       } finally {
         setLoading(false);
       }
