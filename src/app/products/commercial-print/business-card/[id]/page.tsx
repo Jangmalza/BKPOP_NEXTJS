@@ -4,6 +4,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import CategoryLayout from '@/components/Layout/CategoryLayout';
 import { businessCardProducts } from '@/lib/commercialPrintProducts';
+import FileUpload from '@/components/Common/FileUpload';
+import { notifySuccess, notifyError } from '@/utils/notification';
+import { ButtonLoading } from '@/components/Common/LoadingSpinner';
 
 interface ProductOptions {
   paper: string;
@@ -13,6 +16,7 @@ interface ProductOptions {
   thickness: string;
   finishing: string[];
   design: File | null;
+  designPreview?: string;
 }
 
 const BusinessCardDetailPage = () => {
@@ -39,6 +43,7 @@ const BusinessCardDetailPage = () => {
   });
 
   const [totalPrice, setTotalPrice] = useState(35000);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   // 가격 계산 함수
   const calculatePrice = useCallback(() => {
@@ -109,36 +114,59 @@ const BusinessCardDetailPage = () => {
     }));
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    setOptions(prev => ({
-      ...prev,
-      design: file
-    }));
+  const handleFileUpload = async (file: File) => {
+    try {
+      // 실제로는 서버에 업로드하지만, 여기서는 로컬 미리보기만 생성
+      const previewUrl = URL.createObjectURL(file);
+      
+      setOptions(prev => ({
+        ...prev,
+        design: file,
+        designPreview: previewUrl
+      }));
+      
+      // 실제 업로드 로직 (추후 구현)
+      // const formData = new FormData();
+      // formData.append('file', file);
+      // await fetch('/api/upload', { method: 'POST', body: formData });
+      
+    } catch (error) {
+      console.error('파일 업로드 실패:', error);
+      throw error;
+    }
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!product) return;
     
-    // 최종 가격 계산 (부가세 포함)
-    const finalPrice = totalPrice + Math.round(totalPrice * 0.1);
+    setIsAddingToCart(true);
     
-    const cartItem = {
-      ...product,
-      price: finalPrice.toString(), // 부가세 포함된 최종 가격
-      size: options.size, // 선택한 크기 옵션 사용
-      title: `${product.title} (${options.size}, ${options.paper}, ${options.printSides})`,
-      // 선택한 옵션 정보를 추가로 저장
-      options: options
-    };
-    
-    console.log('장바구니에 추가할 상품:', cartItem);
-    console.log('계산된 가격 (부가세 제외):', totalPrice);
-    console.log('최종 가격 (부가세 포함):', finalPrice);
-    console.log('전달할 가격 문자열:', cartItem.price);
-    
-    addItem(cartItem, 1);
-    alert('상품이 장바구니에 추가되었습니다!');
+    try {
+      // 최종 가격 계산 (부가세 포함)
+      const finalPrice = totalPrice + Math.round(totalPrice * 0.1);
+      
+      const cartItem = {
+        ...product,
+        price: finalPrice.toString(), // 부가세 포함된 최종 가격
+        size: options.size, // 선택한 크기 옵션 사용
+        title: `${product.title} (${options.size}, ${options.paper}, ${options.printSides})`,
+        // 선택한 옵션 정보를 추가로 저장
+        options: options
+      };
+      
+      console.log('장바구니에 추가할 상품:', cartItem);
+      console.log('계산된 가격 (부가세 제외):', totalPrice);
+      console.log('최종 가격 (부가세 포함):', finalPrice);
+      console.log('전달할 가격 문자열:', cartItem.price);
+      
+      addItem(cartItem, 1);
+      notifySuccess('상품이 장바구니에 추가되었습니다!');
+    } catch (error) {
+      console.error('장바구니 추가 실패:', error);
+      notifyError('장바구니 추가에 실패했습니다.');
+    } finally {
+      setIsAddingToCart(false);
+    }
   };
 
   const handleDirectOrder = () => {
@@ -303,25 +331,20 @@ const BusinessCardDetailPage = () => {
                   {/* 디자인 */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">디자인</label>
-                    <div className="flex space-x-4">
-                      <label className="flex items-center space-x-2 cursor-pointer">
-                        <input
-                          type="file"
-                          accept=".ai,.eps,.pdf,.tiff"
-                          onChange={handleFileUpload}
-                          className="hidden"
+                    <FileUpload
+                      onUpload={handleFileUpload}
+                      allowedTypes={['ai', 'eps', 'pdf', 'tiff', 'jpg', 'jpeg', 'png']}
+                      maxSize={50} // 50MB
+                      multiple={false}
+                      className="mb-4"
+                    />
+                    {options.designPreview && (
+                      <div className="mt-2 text-sm text-gray-600">
+                        <img 
+                          src={options.designPreview} 
+                          alt="디자인 미리보기" 
+                          className="w-32 h-32 object-cover rounded-lg border"
                         />
-                        <span className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition">
-                          + 디자인 신청하기
-                        </span>
-                      </label>
-                      <button className="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-200 transition">
-                        📁 상세보기
-                      </button>
-                    </div>
-                    {options.design && (
-                      <div className="mt-2 text-sm text-green-600">
-                        업로드된 파일: {options.design.name}
                       </div>
                     )}
                     <div className="mt-2 text-sm text-gray-500">
@@ -406,9 +429,10 @@ const BusinessCardDetailPage = () => {
               <div className="flex space-x-3">
                 <button
                   onClick={handleAddToCart}
-                  className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-bold hover:bg-blue-700 transition"
+                  disabled={isAddingToCart}
+                  className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-bold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  장바구니
+                  {isAddingToCart ? <ButtonLoading text="추가 중..." /> : '장바구니'}
                 </button>
                 <button
                   onClick={handleDirectOrder}

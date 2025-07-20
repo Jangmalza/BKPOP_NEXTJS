@@ -6,6 +6,7 @@ import TopNav from '@/components/Header/TopNav';
 import LogoSearch from '@/components/Header/LogoSearch';
 import MainNav from '@/components/Header/MainNav';
 import Footer from '@/components/Common/Footer';
+import { notifyError, notifyInfo } from '@/utils/notification';
 
 const CartPage = () => {
   const { items, removeItem, updateQuantity, clearCart, getTotalPrice, getTotalItems, refreshCart } = useCart();
@@ -56,18 +57,18 @@ const CartPage = () => {
 
   const handleCheckout = () => {
     if (!isAuthenticated) {
-      alert('로그인 후 주문하실 수 있습니다.');
+      notifyError('로그인 후 주문하실 수 있습니다.');
       window.location.href = '/auth/login';
       return;
     }
     
     if (items.length === 0) {
-      alert('장바구니에 상품이 없습니다.');
+      notifyError('장바구니에 상품이 없습니다.');
       return;
     }
 
     // 주문 로직 구현 (추후 구현)
-    alert('주문 기능은 추후 구현예정입니다.');
+    notifyInfo('주문 기능은 추후 구현예정입니다.');
   };
 
   return (

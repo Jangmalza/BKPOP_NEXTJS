@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { pool } from '@/lib/database';
+import { generateToken, generateRefreshToken } from '@/lib/jwt';
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,13 +43,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 비밀번호 제외한 사용자 정보 반환
+    // 비밀번호 제외한 사용자 정보
     const { password: _, ...userWithoutPassword } = user;
+
+    // JWT 토큰 생성
+    const token = generateToken(userWithoutPassword);
+    const refreshToken = generateRefreshToken(userWithoutPassword);
 
     return NextResponse.json({
       success: true,
       message: '로그인 성공',
-      user: userWithoutPassword
+      user: userWithoutPassword,
+      token,
+      refreshToken
     });
 
   } catch (error) {

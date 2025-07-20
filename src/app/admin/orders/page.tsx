@@ -10,6 +10,7 @@
 import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import AdminLayout from '@/components/Admin/AdminLayout';
+import { getAdminHeaders } from '@/utils/auth';
 
 interface OrderItem {
   id: string;
@@ -274,102 +275,68 @@ const OrdersPage: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<OrderItem | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    processing: 0,
+    shipped: 0,
+    delivered: 0,
+    cancelled: 0,
+    totalRevenue: 0
+  });
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [currentPage, itemsPerPage, searchTerm, statusFilter, paymentFilter]);
 
   const fetchOrders = async () => {
     setLoading(true);
+    setError(null);
+    
     try {
-      // 실제 환경에서는 API 호출
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // 임시 데이터
-      const mockOrders: OrderItem[] = [
-        {
-          id: '1',
-          order_number: 'ORD-2024-001',
-          customer_name: '김철수',
-          customer_email: 'kim@example.com',
-          customer_phone: '010-1234-5678',
-          total_amount: 25000,
-          status: 'pending',
-          payment_status: 'completed',
-          created_at: '2024-01-10T10:30:00',
-          updated_at: '2024-01-10T10:30:00',
-          products: [
-            { id: 1, title: '프리미엄 명함', quantity: 1, price: 15000 },
-            { id: 2, title: 'A4 전단지', quantity: 20, price: 500 }
-          ]
-        },
-        {
-          id: '2',
-          order_number: 'ORD-2024-002',
-          customer_name: '이영희',
-          customer_email: 'lee@example.com',
-          customer_phone: '010-2345-6789',
-          total_amount: 45000,
-          status: 'processing',
-          payment_status: 'completed',
-          created_at: '2024-01-09T14:20:00',
-          updated_at: '2024-01-10T09:15:00',
-          products: [
-            { id: 3, title: '디지털 명함', quantity: 3, price: 12000 },
-            { id: 4, title: '스티커', quantity: 3, price: 3000 }
-          ]
-        },
-        {
-          id: '3',
-          order_number: 'ORD-2024-003',
-          customer_name: '박민수',
-          customer_email: 'park@example.com',
-          customer_phone: '010-3456-7890',
-          total_amount: 8000,
-          status: 'shipped',
-          payment_status: 'completed',
-          created_at: '2024-01-08T16:45:00',
-          updated_at: '2024-01-10T11:00:00',
-          products: [
-            { id: 2, title: '스탠다드 명함', quantity: 1, price: 8000 }
-          ]
-        },
-        {
-          id: '4',
-          order_number: 'ORD-2024-004',
-          customer_name: '최지은',
-          customer_email: 'choi@example.com',
-          customer_phone: '010-4567-8901',
-          total_amount: 36000,
-          status: 'delivered',
-          payment_status: 'completed',
-          created_at: '2024-01-07T11:30:00',
-          updated_at: '2024-01-09T14:20:00',
-          products: [
-            { id: 1, title: '프리미엄 명함', quantity: 2, price: 15000 },
-            { id: 5, title: '스티커', quantity: 2, price: 3000 }
-          ]
-        },
-        {
-          id: '5',
-          order_number: 'ORD-2024-005',
-          customer_name: '정태윤',
-          customer_email: 'jung@example.com',
-          customer_phone: '010-5678-9012',
-          total_amount: 12000,
-          status: 'cancelled',
-          payment_status: 'failed',
-          created_at: '2024-01-06T13:15:00',
-          updated_at: '2024-01-06T15:30:00',
-          products: [
-            { id: 4, title: '디지털 명함', quantity: 1, price: 12000 }
-          ]
-        }
-      ];
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+        search: searchTerm,
+        status: statusFilter === 'all' ? '' : statusFilter,
+        payment: paymentFilter === 'all' ? '' : paymentFilter,
+      });
 
-      setOrders(mockOrders);
+      const response = await fetch(`/api/admin/orders?${params}`, {
+        headers: getAdminHeaders()
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setOrders(result.data.orders);
+        setTotalCount(result.data.pagination.totalCount);
+        setStats(result.data.stats);
+      } else {
+        throw new Error(result.message || '주문 데이터를 불러오는데 실패했습니다.');
+      }
     } catch (error) {
       console.error('주문 목록 로드 실패:', error);
+      setError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.');
+      
+      // 실패 시 빈 배열로 설정
+      setOrders([]);
+      setTotalCount(0);
+      setStats({
+        total: 0,
+        pending: 0,
+        processing: 0,
+        shipped: 0,
+        delivered: 0,
+        cancelled: 0,
+        totalRevenue: 0
+      });
     } finally {
       setLoading(false);
     }
@@ -381,33 +348,59 @@ const OrdersPage: React.FC = () => {
 
   const handleStatusChange = async (order: OrderItem, newStatus: OrderItem['status']) => {
     try {
-      // 실제 환경에서는 API 호출
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await fetch('/api/admin/orders', {
+        method: 'PUT',
+        headers: getAdminHeaders(),
+        body: JSON.stringify({
+          orderId: order.id,
+          status: newStatus,
+          payment_status: order.payment_status
+        }),
+      });
+
+      const result = await response.json();
       
-      setOrders(prev => prev.map(o => 
-        o.id === order.id ? { ...o, status: newStatus, updated_at: new Date().toISOString() } : o
-      ));
-      
-      console.log(`주문 ${order.order_number} 상태 변경: ${newStatus}`);
+      if (result.success) {
+        // 상태 변경 성공시 목록 새로고침
+        fetchOrders();
+        console.log(`주문 ${order.order_number} 상태 변경: ${newStatus}`);
+      } else {
+        throw new Error(result.message || '주문 상태 변경에 실패했습니다.');
+      }
     } catch (error) {
       console.error('주문 상태 변경 실패:', error);
       alert('주문 상태 변경에 실패했습니다.');
     }
   };
 
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.customer_email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    const matchesPayment = paymentFilter === 'all' || order.payment_status === paymentFilter;
-    
-    return matchesSearch && matchesStatus && matchesPayment;
-  });
-
-  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const filteredOrders = orders; // API에서 이미 필터링된 결과를 받음
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentOrders = filteredOrders.slice(startIndex, startIndex + itemsPerPage);
+
+  if (error) {
+    return (
+      <AdminLayout title="주문 관리" currentPath={pathname}>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <span className="text-red-400 text-2xl">⚠️</span>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-lg font-medium text-red-800">오류 발생</h3>
+              <p className="text-red-700 mt-1">{error}</p>
+              <button
+                onClick={() => fetchOrders()}
+                className="mt-3 bg-red-100 hover:bg-red-200 text-red-800 px-4 py-2 rounded-lg text-sm transition-colors"
+              >
+                다시 시도
+              </button>
+            </div>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout title="주문 관리" currentPath={pathname}>
@@ -418,32 +411,41 @@ const OrdersPage: React.FC = () => {
             <div className="flex-1">
               <input
                 type="text"
-                placeholder="주문번호, 고객명, 이메일로 검색..."
+                placeholder="주문번호 또는 고객명으로 검색..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1); // 검색 시 첫 페이지로 이동
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div className="flex gap-2">
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as 'all' | OrderItem['status'])}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as 'all' | OrderItem['status']);
+                  setCurrentPage(1); // 필터 변경 시 첫 페이지로 이동
+                }}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">모든 상태</option>
-                <option value="pending">주문 대기</option>
-                <option value="confirmed">주문 확인</option>
+                <option value="pending">대기 중</option>
+                <option value="confirmed">확인됨</option>
                 <option value="processing">제작 중</option>
                 <option value="shipped">배송 중</option>
                 <option value="delivered">배송 완료</option>
-                <option value="cancelled">주문 취소</option>
+                <option value="cancelled">취소됨</option>
               </select>
               <select
                 value={paymentFilter}
-                onChange={(e) => setPaymentFilter(e.target.value as 'all' | OrderItem['payment_status'])}
+                onChange={(e) => {
+                  setPaymentFilter(e.target.value as 'all' | OrderItem['payment_status']);
+                  setCurrentPage(1); // 필터 변경 시 첫 페이지로 이동
+                }}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="all">모든 결제 상태</option>
+                <option value="all">모든 결제</option>
                 <option value="pending">결제 대기</option>
                 <option value="completed">결제 완료</option>
                 <option value="failed">결제 실패</option>
@@ -456,24 +458,24 @@ const OrdersPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 className="text-sm font-medium text-gray-500">총 주문</h3>
-            <p className="text-2xl font-bold text-gray-900">{orders.length}</p>
+            <p className="text-2xl font-bold text-gray-900">{totalCount}</p>
           </div>
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 className="text-sm font-medium text-gray-500">대기 중</h3>
             <p className="text-2xl font-bold text-yellow-600">
-              {orders.filter(o => o.status === 'pending').length}
+              {stats.pending}
             </p>
           </div>
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 className="text-sm font-medium text-gray-500">제작 중</h3>
             <p className="text-2xl font-bold text-blue-600">
-              {orders.filter(o => o.status === 'processing').length}
+              {stats.processing}
             </p>
           </div>
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 className="text-sm font-medium text-gray-500">배송 완료</h3>
             <p className="text-2xl font-bold text-green-600">
-              {orders.filter(o => o.status === 'delivered').length}
+              {stats.delivered}
             </p>
           </div>
         </div>
@@ -559,7 +561,7 @@ const OrdersPage: React.FC = () => {
                     {' - '}
                     <span className="font-medium">{Math.min(startIndex + itemsPerPage, filteredOrders.length)}</span>
                     {' / '}
-                    <span className="font-medium">{filteredOrders.length}</span>
+                    <span className="font-medium">{totalCount}</span>
                     {' 결과'}
                   </p>
                 </div>

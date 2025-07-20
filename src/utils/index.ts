@@ -184,7 +184,76 @@ export class Validator {
    * @returns 유효성 검사 결과
    */
   static isValidPassword(password: string): boolean {
-    return password.length >= 6;
+    return password.length >= 8;
+  }
+
+  /**
+   * 강력한 비밀번호 유효성 검사
+   * @param password - 검사할 비밀번호
+   * @returns 유효성 검사 결과
+   */
+  static isStrongPassword(password: string): boolean {
+    // 최소 8자, 대문자, 소문자, 숫자, 특수문자 포함
+    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return strongPasswordRegex.test(password);
+  }
+
+  /**
+   * SQL 인젝션 방지를 위한 입력 검증
+   * @param input - 검사할 입력값
+   * @returns 안전한 입력값 여부
+   */
+  static isSafeInput(input: string): boolean {
+    const sqlInjectionPatterns = [
+      /('|(\\'))|(--)|(-\*)|(\/\*)/,
+      /(union|select|insert|delete|update|drop|create|alter|exec|execute)/i,
+      /(script|javascript|vbscript|onload|onerror|onclick)/i,
+    ];
+    
+    return !sqlInjectionPatterns.some(pattern => pattern.test(input));
+  }
+
+  /**
+   * XSS 방지를 위한 HTML 이스케이프
+   * @param input - 이스케이프할 문자열
+   * @returns 이스케이프된 문자열
+   */
+  static escapeHtml(input: string): string {
+    const htmlEscapes: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    };
+    
+    return input.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
+  }
+
+  /**
+   * 파일 확장자 검증
+   * @param filename - 파일명
+   * @param allowedExtensions - 허용된 확장자 목록
+   * @returns 유효한 확장자 여부
+   */
+  static isValidFileExtension(filename: string, allowedExtensions: string[]): boolean {
+    const extension = filename.split('.').pop()?.toLowerCase();
+    return extension ? allowedExtensions.includes(extension) : false;
+  }
+
+  /**
+   * 이메일 도메인 검증
+   * @param email - 검사할 이메일
+   * @param allowedDomains - 허용된 도메인 목록 (선택사항)
+   * @returns 유효한 도메인 여부
+   */
+  static isValidEmailDomain(email: string, allowedDomains?: string[]): boolean {
+    if (!this.isValidEmail(email)) return false;
+    
+    if (!allowedDomains) return true;
+    
+    const domain = email.split('@')[1];
+    return allowedDomains.includes(domain);
   }
 
   /**
@@ -363,5 +432,75 @@ export class LocalStorage {
     } catch (error) {
       console.error('로컬 스토리지 초기화 실패:', error);
     }
+  }
+}
+
+/**
+ * 이벤트 색상 가져오기
+ * @param eventType - 이벤트 타입
+ * @returns 색상 클래스 객체
+ */
+export function getEventColor(eventType: string): {
+  bg: string;
+  text: string;
+  textLight: string;
+  border: string;
+} {
+  switch (eventType) {
+    case 'important':
+      return {
+        bg: 'bg-red-100',
+        text: 'text-red-800',
+        textLight: 'text-red-600',
+        border: 'border-red-500'
+      };
+    case 'notice':
+      return {
+        bg: 'bg-blue-100',
+        text: 'text-blue-800',
+        textLight: 'text-blue-600',
+        border: 'border-blue-500'
+      };
+    case 'event':
+      return {
+        bg: 'bg-green-100',
+        text: 'text-green-800',
+        textLight: 'text-green-600',
+        border: 'border-green-500'
+      };
+    case 'promotion':
+      return {
+        bg: 'bg-yellow-100',
+        text: 'text-yellow-800',
+        textLight: 'text-yellow-600',
+        border: 'border-yellow-500'
+      };
+    default:
+      return {
+        bg: 'bg-gray-100',
+        text: 'text-gray-800',
+        textLight: 'text-gray-600',
+        border: 'border-gray-500'
+      };
+  }
+}
+
+/**
+ * 컨테이너 클래스 가져오기
+ * @param variant - 컨테이너 변형
+ * @returns 클래스 문자열
+ */
+export function getContainerClasses(variant: string = 'default'): string {
+  const baseClasses = 'mx-auto px-4 sm:px-6 lg:px-8';
+  
+  switch (variant) {
+    case 'wide':
+      return `${baseClasses} max-w-7xl`;
+    case 'narrow':
+      return `${baseClasses} max-w-4xl`;
+    case 'full':
+      return `${baseClasses} max-w-full`;
+    default:
+      return `${baseClasses} max-w-6xl`;
   }
 } 

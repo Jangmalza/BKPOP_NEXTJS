@@ -5,7 +5,7 @@ import { User, getCurrentUser, setCurrentUser, logoutUser } from '@/utils/auth';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (user: User) => void;
+  login: (user: User, token?: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -33,9 +33,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
-  const login = (user: User) => {
+  const login = (user: User, token?: string) => {
     setUser(user);
-    setCurrentUser(user);
+    setCurrentUser(user, token);
   };
 
   const logout = () => {

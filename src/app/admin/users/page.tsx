@@ -11,12 +11,22 @@ import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import AdminLayout from '@/components/Admin/AdminLayout';
 import { User, UserRole } from '@/types';
+import { notifySuccess, notifyError, notifyPromise } from '@/utils/notification';
+import { getAdminHeaders } from '@/utils/auth';
 
 interface UserListItem extends User {
   last_login?: string;
-  status: 'active' | 'inactive' | 'banned';
+  status: 'active' | 'inactive' | 'suspended';
   orders_count?: number;
   total_spent?: number;
+}
+
+interface UserStats {
+  total: number;
+  regularUsers: number;
+  admins: number;
+  superAdmins: number;
+  newUsers30d: number;
 }
 
 /**
@@ -40,7 +50,7 @@ const UserTableRow: React.FC<{
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800';
       case 'inactive': return 'bg-yellow-100 text-yellow-800';
-      case 'banned': return 'bg-red-100 text-red-800';
+      case 'suspended': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -197,88 +207,461 @@ const UserDetailModal: React.FC<{
 };
 
 /**
+ * 사용자 생성 모달
+ */
+const CreateUserModal: React.FC<{
+  show: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}> = ({ show, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    phone: '',
+    role: 'user' as UserRole
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        notifySuccess('사용자가 성공적으로 생성되었습니다.');
+        onSuccess();
+        onClose();
+        setFormData({
+          name: '',
+          email: '',
+          password: '',
+          phone: '',
+          role: 'user'
+        });
+      } else {
+        setError(result.message || '사용자 생성에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('사용자 생성 실패:', error);
+      setError('사용자 생성 중 오류가 발생했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose}></div>
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          <form onSubmit={handleSubmit}>
+            <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+              <div className="sm:flex sm:items-start">
+                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                    새 사용자 생성
+                  </h3>
+                  {error && (
+                    <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                      {error}
+                    </div>
+                  )}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">이름 *</label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">이메일 *</label>
+                      <input
+                        type="email"
+                        required
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">비밀번호 *</label>
+                      <input
+                        type="password"
+                        required
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        minLength={8}
+                      />
+                      <p className="mt-1 text-sm text-gray-500">8자 이상 입력하세요.</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">전화번호</label>
+                      <input
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">역할</label>
+                      <select
+                        value={formData.role}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      >
+                        <option value="user">사용자</option>
+                        <option value="admin">관리자</option>
+                        <option value="super_admin">최고 관리자</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
+              >
+                {isSubmitting ? '생성 중...' : '생성'}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+              >
+                취소
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * 사용자 수정 모달
+ */
+const EditUserModal: React.FC<{
+  show: boolean;
+  user: UserListItem | null;
+  onClose: () => void;
+  onSuccess: () => void;
+}> = ({ show, user, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    role: 'user' as UserRole,
+    status: 'active' as 'active' | 'inactive' | 'suspended'
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        role: user.role,
+        status: user.status
+      });
+    }
+  }, [user]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          ...formData
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        notifySuccess('사용자 정보가 성공적으로 수정되었습니다.');
+        onSuccess();
+        onClose();
+      } else {
+        setError(result.message || '사용자 수정에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('사용자 수정 실패:', error);
+      setError('사용자 수정 중 오류가 발생했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleStatusChange = async (newStatus: 'active' | 'inactive' | 'suspended') => {
+    if (!user) return;
+
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          status: newStatus,
+          action: 'changeStatus'
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        notifySuccess('사용자 상태가 성공적으로 변경되었습니다.');
+        setFormData({ ...formData, status: newStatus });
+        onSuccess();
+      } else {
+        notifyError(result.message || '상태 변경에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('상태 변경 실패:', error);
+      notifyError('상태 변경 중 오류가 발생했습니다.');
+    }
+  };
+
+  if (!show || !user) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose}></div>
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          <form onSubmit={handleSubmit}>
+            <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+              <div className="sm:flex sm:items-start">
+                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                    사용자 정보 수정
+                  </h3>
+                  {error && (
+                    <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                      {error}
+                    </div>
+                  )}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">이름</label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">이메일</label>
+                      <input
+                        type="email"
+                        required
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">전화번호</label>
+                      <input
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">역할</label>
+                      <select
+                        value={formData.role}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      >
+                        <option value="user">사용자</option>
+                        <option value="admin">관리자</option>
+                        <option value="super_admin">최고 관리자</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">상태</label>
+                      <div className="flex space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange('active')}
+                          className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            formData.status === 'active' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          활성
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange('inactive')}
+                          className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            formData.status === 'inactive' 
+                              ? 'bg-yellow-100 text-yellow-800' 
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          비활성
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange('suspended')}
+                          className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            formData.status === 'suspended' 
+                              ? 'bg-red-100 text-red-800' 
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          차단
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
+              >
+                {isSubmitting ? '수정 중...' : '수정'}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+              >
+                취소
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
  * 사용자 관리 페이지
  */
 const UsersPage: React.FC = () => {
   const pathname = usePathname();
   const [users, setUsers] = useState<UserListItem[]>([]);
+  const [stats, setStats] = useState<UserStats>({
+    total: 0,
+    regularUsers: 0,
+    admins: 0,
+    superAdmins: 0,
+    newUsers30d: 0
+  });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'banned'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'suspended'>('all');
   const [selectedUser, setSelectedUser] = useState<UserListItem | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
+  const [editingUser, setEditingUser] = useState<UserListItem | null>(null);
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [currentPage, searchTerm, roleFilter, statusFilter]);
 
   const fetchUsers = async () => {
     setLoading(true);
+    setError(null);
+    
     try {
-      // 실제 환경에서는 API 호출
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // 임시 데이터
-      const mockUsers: UserListItem[] = [
-        {
-          id: '1',
-          name: '김철수',
-          email: 'kim@example.com',
-          phone: '010-1234-5678',
-          role: 'user',
-          status: 'active',
-          orders_count: 5,
-          total_spent: 125000,
-          last_login: '2024-01-10T10:30:00',
-          created_at: '2024-01-01T09:00:00',
-          updated_at: '2024-01-10T10:30:00'
-        },
-        {
-          id: '2',
-          name: '이영희',
-          email: 'lee@example.com',
-          phone: '010-2345-6789',
-          role: 'user',
-          status: 'active',
-          orders_count: 12,
-          total_spent: 250000,
-          last_login: '2024-01-09T15:20:00',
-          created_at: '2023-12-15T14:30:00',
-          updated_at: '2024-01-09T15:20:00'
-        },
-        {
-          id: '3',
-          name: '박관리',
-          email: 'admin@bkpop.com',
-          phone: '010-3456-7890',
-          role: 'admin',
-          status: 'active',
-          orders_count: 0,
-          total_spent: 0,
-          last_login: '2024-01-11T08:15:00',
-          created_at: '2023-11-01T10:00:00',
-          updated_at: '2024-01-11T08:15:00'
-        },
-        {
-          id: '4',
-          name: '최수퍼',
-          email: 'super@bkpop.com',
-          phone: '010-4567-8901',
-          role: 'super_admin',
-          status: 'active',
-          orders_count: 0,
-          total_spent: 0,
-          last_login: '2024-01-11T09:00:00',
-          created_at: '2023-10-01T10:00:00',
-          updated_at: '2024-01-11T09:00:00'
-        }
-      ];
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+        search: searchTerm,
+        role: roleFilter === 'all' ? '' : roleFilter,
+        status: statusFilter === 'all' ? '' : statusFilter,
+      });
 
-      setUsers(mockUsers);
+      const response = await fetch(`/api/admin/users?${params}`, {
+        headers: getAdminHeaders()
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // API 응답을 UserListItem 형태로 변환
+        const usersWithStatus = result.data.users.map((user: any) => ({
+          ...user,
+          status: user.status || 'active', // 실제 상태 사용
+          orders_count: user.orders_count || 0,
+          total_spent: user.total_spent || 0
+        }));
+
+        setUsers(usersWithStatus);
+        setTotalCount(result.data.pagination.totalCount);
+        setStats(result.data.stats);
+      } else {
+        throw new Error(result.message || '사용자 데이터를 불러오는데 실패했습니다.');
+      }
     } catch (error) {
       console.error('사용자 목록 로드 실패:', error);
+      setError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.');
+      
+      // 실패 시 빈 배열로 설정
+      setUsers([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -289,29 +672,58 @@ const UsersPage: React.FC = () => {
   };
 
   const handleEdit = (user: UserListItem) => {
-    // 수정 모달 또는 페이지로 이동
-    console.log('사용자 수정:', user);
+    setEditingUser(user);
+    setShowEditModal(true);
   };
 
-  const handleDelete = (user: UserListItem) => {
+  const handleDelete = async (user: UserListItem) => {
     if (confirm(`정말로 ${user.name} 사용자를 삭제하시겠습니까?`)) {
-      console.log('사용자 삭제:', user);
-      // 실제 삭제 로직 구현
+      try {
+        const response = await fetch(`/api/admin/users?userId=${user.id}`, {
+          method: 'DELETE',
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+                  notifySuccess('사용자가 성공적으로 삭제되었습니다.');
+        fetchUsers(); // 목록 새로고침
+      } else {
+        notifyError(result.message || '사용자 삭제에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('사용자 삭제 실패:', error);
+      notifyError('사용자 삭제 중 오류가 발생했습니다.');
+    }
     }
   };
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
-    
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+  const filteredUsers = users; // API에서 이미 필터링된 결과를 받음
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
 
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+  if (error) {
+    return (
+      <AdminLayout title="사용자 관리" currentPath={pathname}>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <span className="text-red-400 text-2xl">⚠️</span>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-lg font-medium text-red-800">오류 발생</h3>
+              <p className="text-red-700 mt-1">{error}</p>
+              <button
+                onClick={() => fetchUsers()}
+                className="mt-3 bg-red-100 hover:bg-red-200 text-red-800 px-4 py-2 rounded-lg text-sm transition-colors"
+              >
+                다시 시도
+              </button>
+            </div>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout title="사용자 관리" currentPath={pathname}>
@@ -324,14 +736,20 @@ const UsersPage: React.FC = () => {
                 type="text"
                 placeholder="이름 또는 이메일로 검색..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1); // 검색 시 첫 페이지로 이동
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div className="flex gap-2">
               <select
                 value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value as UserRole | 'all')}
+                onChange={(e) => {
+                  setRoleFilter(e.target.value as UserRole | 'all');
+                  setCurrentPage(1); // 필터 변경 시 첫 페이지로 이동
+                }}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">모든 역할</option>
@@ -341,13 +759,16 @@ const UsersPage: React.FC = () => {
               </select>
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive' | 'banned')}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as 'all' | 'active' | 'inactive' | 'suspended');
+                  setCurrentPage(1); // 필터 변경 시 첫 페이지로 이동
+                }}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">모든 상태</option>
                 <option value="active">활성</option>
                 <option value="inactive">비활성</option>
-                <option value="banned">차단</option>
+                <option value="suspended">차단</option>
               </select>
             </div>
           </div>
@@ -357,38 +778,38 @@ const UsersPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 className="text-sm font-medium text-gray-500">총 사용자</h3>
-            <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
           </div>
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 className="text-sm font-medium text-gray-500">활성 사용자</h3>
-            <p className="text-2xl font-bold text-green-600">
-              {users.filter(u => u.status === 'active').length}
-            </p>
+            <p className="text-2xl font-bold text-green-600">{stats.regularUsers}</p>
           </div>
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 className="text-sm font-medium text-gray-500">관리자</h3>
             <p className="text-2xl font-bold text-blue-600">
-              {users.filter(u => u.role === 'admin' || u.role === 'super_admin').length}
+              {stats.admins + stats.superAdmins}
             </p>
           </div>
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 className="text-sm font-medium text-gray-500">신규 사용자 (30일)</h3>
-            <p className="text-2xl font-bold text-purple-600">
-              {users.filter(u => {
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                return new Date(u.created_at) >= thirtyDaysAgo;
-              }).length}
-            </p>
+            <p className="text-2xl font-bold text-purple-600">{stats.newUsers30d}</p>
           </div>
         </div>
 
         {/* 사용자 목록 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
             <h3 className="text-lg font-medium text-gray-900">
-              사용자 목록 ({filteredUsers.length}명)
+              사용자 목록 ({totalCount}명)
             </h3>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                + 사용자 생성
+              </button>
+            </div>
           </div>
           
           {loading ? (
@@ -428,7 +849,7 @@ const UsersPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {currentUsers.map((user) => (
+                  {filteredUsers.map((user) => (
                     <UserTableRow
                       key={user.id}
                       user={user}
@@ -464,11 +885,11 @@ const UsersPage: React.FC = () => {
               <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm text-gray-700">
-                    <span className="font-medium">{startIndex + 1}</span>
+                    <span className="font-medium">{((currentPage - 1) * itemsPerPage) + 1}</span>
                     {' - '}
-                    <span className="font-medium">{Math.min(startIndex + itemsPerPage, filteredUsers.length)}</span>
+                    <span className="font-medium">{Math.min(currentPage * itemsPerPage, totalCount)}</span>
                     {' / '}
-                    <span className="font-medium">{filteredUsers.length}</span>
+                    <span className="font-medium">{totalCount}</span>
                     {' 결과'}
                   </p>
                 </div>
@@ -481,19 +902,22 @@ const UsersPage: React.FC = () => {
                     >
                       이전
                     </button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                          page === currentPage
-                            ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    ))}
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      const page = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            page === currentPage
+                              ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    })}
                     <button
                       onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                       disabled={currentPage === totalPages}
@@ -513,6 +937,24 @@ const UsersPage: React.FC = () => {
       <UserDetailModal
         user={selectedUser}
         onClose={() => setSelectedUser(null)}
+      />
+
+      {/* 사용자 생성 모달 */}
+      <CreateUserModal
+        show={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={fetchUsers}
+      />
+
+      {/* 사용자 수정 모달 */}
+      <EditUserModal
+        show={showEditModal}
+        user={editingUser}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingUser(null);
+        }}
+        onSuccess={fetchUsers}
       />
     </AdminLayout>
   );

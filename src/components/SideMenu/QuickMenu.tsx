@@ -1,6 +1,6 @@
 // components/SideMenu/QuickMenu.tsx
 import React from 'react';
-import quickMenuItems from '../../../lib/quickMenuItems';
+import quickMenuItems, { QuickMenuItem } from '@/lib/quickMenuItems';
 
 const QuickMenu: React.FC = () => {
   return (
@@ -10,7 +10,7 @@ const QuickMenu: React.FC = () => {
         퀵메뉴
       </h3>
       <div className="space-y-3">
-        {quickMenuItems.map((item) => (
+        {quickMenuItems.map((item: QuickMenuItem) => (
           <div
             key={item.id}
             className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-blue-50 hover:border-blue-200 border border-transparent transition-all duration-200 cursor-pointer group"

@@ -86,13 +86,42 @@ export const getCurrentUser = (): User | null => {
 };
 
 // 현재 로그인한 사용자 정보 저장
-export const setCurrentUser = (user: User | null): void => {
+export const setCurrentUser = (user: User | null, token?: string): void => {
   if (typeof window === 'undefined') return;
   if (user) {
     localStorage.setItem('currentUser', JSON.stringify(user));
+    if (token) {
+      localStorage.setItem('authToken', token);
+    }
   } else {
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('authToken');
   }
+};
+
+// 인증 토큰 가져오기
+export const getAuthToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('authToken');
+};
+
+// 관리자 API 호출용 헤더 생성
+export const getAdminHeaders = (): HeadersInit => {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  
+  const token = getAuthToken();
+  const user = getCurrentUser();
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  } else if (user?.email) {
+    // 개발 환경에서는 이메일 헤더로 대체
+    headers['X-User-Email'] = user.email;
+  }
+  
+  return headers;
 };
 
 // 로그아웃

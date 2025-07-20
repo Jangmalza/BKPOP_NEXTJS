@@ -12,6 +12,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import AdminLayout from '@/components/Admin/AdminLayout';
 import { ProductItem } from '@/types';
+import { getAdminHeaders } from '@/utils/auth';
 
 interface ProductListItem extends ProductItem {
   description?: string;
@@ -195,89 +196,61 @@ const ProductsPage: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<ProductListItem | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0, outOfStock: 0 });
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [currentPage, itemsPerPage, searchTerm, categoryFilter, statusFilter]);
 
   const fetchProducts = async () => {
     setLoading(true);
+    setError(null);
+    
     try {
-      // 실제 환경에서는 API 호출
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // 임시 데이터
-      const mockProducts: ProductListItem[] = [
-        {
-          id: 1,
-          title: '프리미엄 명함',
-          size: '90x50mm',
-          price: '15,000원',
-          quantity: '100매',
-          image: '/images/business-card.jpg',
-          category_name: '상업인쇄',
-          status: 'active',
-          description: '고급 종이로 제작된 프리미엄 명함입니다.',
-          created_at: '2024-01-01T10:00:00',
-          updated_at: '2024-01-05T14:30:00'
-        },
-        {
-          id: 2,
-          title: '스탠다드 명함',
-          size: '90x50mm',
-          price: '8,000원',
-          quantity: '500매',
-          image: '/images/business-card-standard.jpg',
-          category_name: '상업인쇄',
-          status: 'active',
-          description: '기본 종이로 제작된 스탠다드 명함입니다.',
-          created_at: '2024-01-02T09:00:00',
-          updated_at: '2024-01-05T16:00:00'
-        },
-        {
-          id: 3,
-          title: 'A4 전단지',
-          size: '210x297mm',
-          price: '500원',
-          quantity: '0매',
-          image: '/images/flyer.jpg',
-          category_name: '상업인쇄',
-          status: 'out_of_stock',
-          description: '광고용 A4 전단지입니다.',
-          created_at: '2024-01-03T11:00:00',
-          updated_at: '2024-01-06T10:00:00'
-        },
-        {
-          id: 4,
-          title: '디지털 명함',
-          size: '90x50mm',
-          price: '12,000원',
-          quantity: '200매',
-          image: '/images/digital-business-card.jpg',
-          category_name: '디지털인쇄',
-          status: 'active',
-          description: '디지털 인쇄 방식의 명함입니다.',
-          created_at: '2024-01-04T13:00:00',
-          updated_at: '2024-01-07T09:00:00'
-        },
-        {
-          id: 5,
-          title: '스티커',
-          size: '100x100mm',
-          price: '3,000원',
-          quantity: '1000매',
-          image: '/images/sticker.jpg',
-          category_name: '상업인쇄',
-          status: 'inactive',
-          description: '다양한 용도로 사용할 수 있는 스티커입니다.',
-          created_at: '2024-01-05T15:00:00',
-          updated_at: '2024-01-08T11:00:00'
-        }
-      ];
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+        search: searchTerm,
+        category: categoryFilter === 'all' ? '' : categoryFilter,
+        status: statusFilter === 'all' ? '' : statusFilter,
+      });
 
-      setProducts(mockProducts);
+      const response = await fetch(`/api/admin/products?${params}`, {
+        headers: getAdminHeaders()
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // API 응답을 ProductListItem 형태로 변환
+        const productsWithStatus = result.data.products.map((product: any) => ({
+          ...product,
+          status: product.is_active ? 'active' : 'inactive',
+          price: `${product.price.toLocaleString()}원`,
+          quantity: `${product.stock_quantity}개`,
+          category_name: product.category
+        }));
+
+        setProducts(productsWithStatus);
+        setTotalCount(result.data.pagination.totalCount);
+        setStats(result.data.stats);
+      } else {
+        throw new Error(result.message || '상품 데이터를 불러오는데 실패했습니다.');
+      }
     } catch (error) {
       console.error('상품 목록 로드 실패:', error);
+      setError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.');
+      
+      // 실패 시 빈 배열로 설정
+      setProducts([]);
+      setTotalCount(0);
+      setStats({ total: 0, active: 0, inactive: 0, outOfStock: 0 });
     } finally {
       setLoading(false);
     }
@@ -308,12 +281,36 @@ const ProductsPage: React.FC = () => {
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage);
 
   // 카테고리 목록 추출
   const categories = Array.from(new Set(products.map(p => p.category_name).filter(Boolean)));
+
+  if (error) {
+    return (
+      <AdminLayout title="상품 관리" currentPath={pathname}>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <span className="text-red-400 text-2xl">⚠️</span>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-lg font-medium text-red-800">오류 발생</h3>
+              <p className="text-red-700 mt-1">{error}</p>
+              <button
+                onClick={() => fetchProducts()}
+                className="mt-3 bg-red-100 hover:bg-red-200 text-red-800 px-4 py-2 rounded-lg text-sm transition-colors"
+              >
+                다시 시도
+              </button>
+            </div>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout title="상품 관리" currentPath={pathname}>
@@ -371,24 +368,24 @@ const ProductsPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 className="text-sm font-medium text-gray-500">총 상품</h3>
-            <p className="text-2xl font-bold text-gray-900">{products.length}</p>
+            <p className="text-2xl font-bold text-gray-900">{totalCount}</p>
           </div>
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 className="text-sm font-medium text-gray-500">활성 상품</h3>
             <p className="text-2xl font-bold text-green-600">
-              {products.filter(p => p.status === 'active').length}
+              {stats.active}
             </p>
           </div>
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 className="text-sm font-medium text-gray-500">품절 상품</h3>
             <p className="text-2xl font-bold text-red-600">
-              {products.filter(p => p.status === 'out_of_stock').length}
+              {stats.outOfStock}
             </p>
           </div>
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 className="text-sm font-medium text-gray-500">비활성 상품</h3>
             <p className="text-2xl font-bold text-gray-600">
-              {products.filter(p => p.status === 'inactive').length}
+              {stats.inactive}
             </p>
           </div>
         </div>
@@ -475,7 +472,7 @@ const ProductsPage: React.FC = () => {
                     {' - '}
                     <span className="font-medium">{Math.min(startIndex + itemsPerPage, filteredProducts.length)}</span>
                     {' / '}
-                    <span className="font-medium">{filteredProducts.length}</span>
+                    <span className="font-medium">{totalCount}</span>
                     {' 결과'}
                   </p>
                 </div>

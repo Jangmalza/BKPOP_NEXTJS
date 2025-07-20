@@ -248,13 +248,17 @@ export function isTest(): boolean {
   return AppConfig.app.env === 'test';
 }
 
-// 설정 초기화 및 검증
-try {
-  validateConfig();
-  if (isDevelopment()) {
-    logConfig();
+// 설정 초기화 및 검증 (빌드 시에는 건너뛰기)
+if (typeof window === 'undefined' && !process.env.NEXT_BUILD && typeof process !== 'undefined' && process.env) {
+  try {
+    validateConfig();
+    if (isDevelopment()) {
+      logConfig();
+    }
+  } catch (error) {
+    console.error('❌ 설정 검증 실패:', error);
+    // Edge Runtime 호환성을 위해 process.exit 제거
+    // 개발환경에서는 경고만 출력하고 계속 진행
+    console.warn('⚠️ 설정 검증 실패했지만 계속 진행합니다. (Edge Runtime 호환성)');
   }
-} catch (error) {
-  console.error('❌ 설정 검증 실패:', error);
-  process.exit(1);
 } 

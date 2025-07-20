@@ -11,6 +11,7 @@ import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import AdminLayout from '@/components/Admin/AdminLayout';
 import { AdminStats } from '@/types';
+import { getAdminHeaders } from '@/utils/auth';
 
 /**
  * 통계 카드 컴포넌트
@@ -111,7 +112,9 @@ const AdminDashboard: React.FC = () => {
     // 실제 API 호출로 데이터를 가져옴
     const fetchStats = async () => {
       try {
-        const response = await fetch('/api/admin/stats');
+        const response = await fetch('/api/admin/stats', {
+          headers: getAdminHeaders()
+        });
         const result = await response.json();
         
         if (result.success) {

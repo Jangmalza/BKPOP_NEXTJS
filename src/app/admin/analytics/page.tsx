@@ -10,6 +10,7 @@
 import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import AdminLayout from '@/components/Admin/AdminLayout';
+import { getAdminHeaders } from '@/utils/auth';
 
 interface AnalyticsData {
   overview: {
@@ -265,6 +266,7 @@ const AnalyticsPage: React.FC = () => {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState('30days');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAnalyticsData();
@@ -272,54 +274,31 @@ const AnalyticsPage: React.FC = () => {
 
   const fetchAnalyticsData = async () => {
     setLoading(true);
+    setError(null);
+    
     try {
-      // 실제 환경에서는 API 호출
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // 임시 데이터
-      const mockData: AnalyticsData = {
-        overview: {
-          totalRevenue: 12500000,
-          totalOrders: 856,
-          totalUsers: 1234,
-          averageOrderValue: 14602,
-          revenueGrowth: 15.2,
-          orderGrowth: 8.7,
-          userGrowth: 12.3
-        },
-        revenueChart: {
-          labels: ['1월', '2월', '3월', '4월', '5월', '6월'],
-          data: [1800000, 2200000, 1900000, 2800000, 2400000, 3200000]
-        },
-        orderChart: {
-          labels: ['1월', '2월', '3월', '4월', '5월', '6월'],
-          data: [120, 150, 135, 180, 165, 210]
-        },
-        categoryStats: [
-          { category: '상업인쇄', revenue: 5200000, orders: 342, percentage: 41.6 },
-          { category: '디지털인쇄', revenue: 3100000, orders: 198, percentage: 24.8 },
-          { category: '대형인쇄', revenue: 2800000, orders: 156, percentage: 22.4 },
-          { category: '패키지', revenue: 900000, orders: 87, percentage: 7.2 },
-          { category: '기타', revenue: 500000, orders: 73, percentage: 4.0 }
-        ],
-        topProducts: [
-          { id: 1, name: '프리미엄 명함', revenue: 2100000, orders: 140, quantity: 140 },
-          { id: 2, name: '디지털 명함', revenue: 1800000, orders: 150, quantity: 150 },
-          { id: 3, name: 'A4 전단지', revenue: 1200000, orders: 200, quantity: 2400 },
-          { id: 4, name: '스티커', revenue: 900000, orders: 300, quantity: 300 },
-          { id: 5, name: '대형 배너', revenue: 800000, orders: 45, quantity: 45 }
-        ],
-        userStats: {
-          newUsers: 234,
-          activeUsers: 892,
-          returningUsers: 156,
-          userRetentionRate: 67.5
-        }
-      };
+      const params = new URLSearchParams({
+        dateRange: dateRange,
+      });
 
-      setAnalyticsData(mockData);
+      const response = await fetch(`/api/admin/analytics?${params}`, {
+        headers: getAdminHeaders()
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setAnalyticsData(result.data);
+      } else {
+        throw new Error(result.message || '통계 데이터를 불러오는데 실패했습니다.');
+      }
     } catch (error) {
       console.error('통계 데이터 로드 실패:', error);
+      setError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
@@ -345,11 +324,41 @@ const AnalyticsPage: React.FC = () => {
     );
   }
 
+  if (error) {
+    return (
+      <AdminLayout title="통계 분석" currentPath={pathname}>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <span className="text-red-400 text-2xl">⚠️</span>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-lg font-medium text-red-800">오류 발생</h3>
+              <p className="text-red-700 mt-1">{error}</p>
+              <button
+                onClick={() => fetchAnalyticsData()}
+                className="mt-3 bg-red-100 hover:bg-red-200 text-red-800 px-4 py-2 rounded-lg text-sm transition-colors"
+              >
+                다시 시도
+              </button>
+            </div>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
   if (!analyticsData) {
     return (
       <AdminLayout title="통계 분석" currentPath={pathname}>
         <div className="text-center py-12">
           <p className="text-gray-500">통계 데이터를 불러올 수 없습니다.</p>
+          <button
+            onClick={() => fetchAnalyticsData()}
+            className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+          >
+            다시 시도
+          </button>
         </div>
       </AdminLayout>
     );
