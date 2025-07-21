@@ -1,16 +1,16 @@
 # 보광 인쇄몰 데이터베이스 설치 가이드
 
-## 📋 개요
+## 개요
 이 가이드는 보광 인쇄몰 프로젝트의 MySQL 데이터베이스 설치 및 설정 방법을 안내합니다.
 
-## 🔧 준비사항
+## 준비사항
 - MySQL Server 8.0 이상
 - MySQL Workbench 또는 phpMyAdmin (선택사항)
 - 터미널 또는 명령 프롬프트 접근 권한
 
-## 📂 스키마 구조
+## 스키마 구조
 ```
-📁 Database Schema
+Database Schema
 ├── 14개 핵심 테이블
 ├── 2개 View
 ├── 2개 저장 프로시저
@@ -18,7 +18,7 @@
 └── 기본 데이터 삽입
 ```
 
-## 🚀 설치 단계
+## 설치 단계
 
 ### 1. MySQL 서버 설치 (macOS)
 ```bash
@@ -96,7 +96,7 @@ npm run dev
 curl -X POST http://localhost:3000/api/init-db
 ```
 
-## 📊 생성되는 테이블 목록
+## 생성되는 테이블 목록
 
 ### 1. 사용자 관련 테이블
 - `users` - 사용자 정보
@@ -128,7 +128,7 @@ curl -X POST http://localhost:3000/api/init-db
 - `admin_logs` - 관리자 활동 로그
 - `system_settings` - 시스템 설정
 
-## 🔐 기본 관리자 계정
+## 기본 관리자 계정
 스키마 실행 후 다음 관리자 계정이 자동으로 생성됩니다:
 
 ```
@@ -139,7 +139,7 @@ curl -X POST http://localhost:3000/api/init-db
 
 ⚠️ **보안 주의사항**: 최초 로그인 후 반드시 비밀번호를 변경하세요.
 
-## 🎯 주요 기능
+## 주요 기능
 
 ### 1. 자동 주문 번호 생성
 ```sql
@@ -171,7 +171,7 @@ WHERE MATCH(title, description, short_description)
 AGAINST('명함' IN BOOLEAN MODE);
 ```
 
-## 🔧 유지보수 명령어
+## 유지보수 명령어
 
 ### 데이터베이스 백업
 ```bash
@@ -204,7 +204,7 @@ DELETE FROM admin_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY);
 DELETE FROM orders WHERE status = 'cancelled' AND cancelled_at < DATE_SUB(NOW(), INTERVAL 90 DAY);
 ```
 
-## 🚨 트러블슈팅
+## 트러블슈팅
 
 ### 1. 연결 오류
 ```bash
@@ -241,7 +241,7 @@ SET NAMES utf8mb4;
 SET CHARACTER SET utf8mb4;
 ```
 
-## 📈 성능 최적화 팁
+## 성능 최적화 팁
 
 ### 1. 쿼리 최적화
 ```sql
@@ -269,7 +269,7 @@ innodb_buffer_pool_size = 1G
 query_cache_size = 128M
 ```
 
-## 🔄 업데이트 및 마이그레이션
+## 업데이트 및 마이그레이션
 
 ### 스키마 업데이트 시
 1. 기존 데이터 백업
@@ -286,6 +286,6 @@ VALUES ('schema_version', '1.0.0', '데이터베이스 스키마 버전', 'syste
 
 ---
 
-이제 데이터베이스가 완전히 설정되었습니다! 🎉
+이제 데이터베이스가 완전히 설정되었습니다!
 
 프로젝트를 실행하고 `/admin` 페이지에서 관리자 기능을 테스트해보세요. 

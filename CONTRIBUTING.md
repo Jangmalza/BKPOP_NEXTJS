@@ -1,8 +1,8 @@
-# 🤝 협업 가이드
+# 협업 가이드
 
 BKPOP 인쇄몰 프로젝트에 기여해주셔서 감사합니다! 이 가이드는 효과적인 협업을 위한 규칙과 절차를 안내합니다.
 
-## 📋 목차
+## 목차
 
 - [시작하기](#시작하기)
 - [개발 환경 설정](#개발-환경-설정)
@@ -12,7 +12,7 @@ BKPOP 인쇄몰 프로젝트에 기여해주셔서 감사합니다! 이 가이�
 - [테스트](#테스트)
 - [배포](#배포)
 
-## 🚀 시작하기
+## 시작하기
 
 ### 1. 저장소 복제
 ```bash
@@ -53,7 +53,7 @@ npm run db:seed
 npm run dev
 ```
 
-## 🛠️ 개발 환경 설정
+## 개발 환경 설정
 
 ### 필수 도구
 - **Node.js**: 18.x 이상
@@ -81,7 +81,7 @@ npm run lint:fix
 npm run type-check
 ```
 
-## 📝 코딩 규칙
+## 코딩 규칙
 
 ### 1. 코드 스타일
 - **Prettier** 사용으로 일관된 코드 포맷팅
@@ -151,7 +151,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onEdit }) => {
 export default UserProfile;
 ```
 
-## 🔄 Git 워크플로우
+## Git 워크플로우
 
 ### 1. 브랜치 전략
 ```
@@ -212,7 +212,7 @@ git push origin feature/user-management
 # GitHub에서 Pull Request 생성
 ```
 
-## 👀 코드 리뷰
+## 코드 리뷰
 
 ### 1. Pull Request 규칙
 - **제목**: 명확하고 간결한 제목
@@ -242,7 +242,7 @@ git push origin feature/user-management
 - "틀렸어요."
 ```
 
-## 🧪 테스트
+## 테스트
 
 ### 1. 테스트 종류
 ```bash
@@ -280,7 +280,7 @@ describe('validatePassword', () => {
 - **브랜치 커버리지**: 70% 이상
 - **함수 커버리지**: 80% 이상
 
-## 🚀 배포
+## 배포
 
 ### 1. 배포 환경
 - **개발**: `develop` 브랜치 → Staging 환경
@@ -305,7 +305,7 @@ npm run deploy:production
 npm run rollback
 ```
 
-## 📞 문의 및 지원
+## 문의 및 지원
 
 ### 1. 이슈 보고
 - **버그**: GitHub Issues에 버그 템플릿 사용
@@ -317,7 +317,7 @@ npm run rollback
 - **슬랙**: #bkpop-dev 채널
 - **문서**: [프로젝트 위키](https://github.com/your-org/bkpop-nextjs/wiki)
 
-## 🎯 성공적인 협업을 위한 팁
+## 성공적인 협업을 위한 팁
 
 ### 1. 커뮤니케이션
 - **명확한 의사소통**: 애매한 표현 지양
@@ -336,6 +336,6 @@ npm run rollback
 
 ---
 
-**Happy Coding! 🎉**
+**Happy Coding!**
 
 더 나은 협업을 위한 제안이나 질문이 있으시면 언제든지 문의해주세요! 
